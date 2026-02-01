@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Currency Converter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f1117;
+            --bg-card: #1a1d27;
+            --bg-input: #12141c;
+            --border: #2a2d3a;
+            --border-focus: #c9a96e;
+            --text-primary: #f0ece4;
+            --text-secondary: #7a7f8e;
+            --accent: #c9a96e;
+            --accent-dim: rgba(201, 169, 110, 0.12);
+            --accent-glow: rgba(201, 169, 110, 0.25);
+            --red: #e06c6c;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Ambient background shapes */
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.18;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::before {
+            width: 500px; height: 500px;
+            background: #c9a96e;
+            top: -120px; left: -150px;
+        }
+        body::after {
+            width: 450px; height: 450px;
+            background: #4a6fa5;
+            bottom: -100px; right: -130px;
+        }
+
+        /* Card */
+        .card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 44px 40px 40px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+            animation: cardIn 0.6s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+        .header .icon-wrap {
+            width: 52px; height: 52px;
+            margin: 0 auto 18px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(201,169,110,0.25);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            animation: iconPop 0.5s 0.2s cubic-bezier(0.16,1,0.3,1) both;
+            opacity: 0;
+        }
+        @keyframes iconPop {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        .header .icon-wrap svg {
+            width: 24px; height: 24px;
+            stroke: var(--accent); fill: none; stroke-width: 1.8;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+        .header h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-size: 1.85rem;
+            letter-spacing: 0.04em;
+            color: var(--text-primary);
+        }
+        .header p {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        /* Form groups — staggered entrance */
+        .field {
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fieldIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+            position: relative;
+            z-index: 1;
+        }
+        .field:nth-child(1) { animation-delay: 0.15s; }
+        .field:nth-child(2) { animation-delay: 0.25s; z-index: 3; }
+        .field:nth-child(3) { animation-delay: 0.35s; z-index: 2; }
+
+        @keyframes fieldIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .field input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 13px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 300;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.25s, box-shadow 0.25s;
+        }
+        .field input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.55;
+        }
+        .field input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        /* Remove number spinner arrows */
+        .field input[type=number]::-webkit-inner-spin-button,
+        .field input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .field input[type=number] { -moz-appearance: textfield; }
+
+        /* Custom searchable select */
+        .custom-select {
+            position: relative;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .custom-select.active {
+            z-index: 1001;
+        }
+
+        .custom-select .search-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 13px 40px 13px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 300;
+            color: var(--text-primary);
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.25s, box-shadow 0.25s;
+        }
+
+        .custom-select .search-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.55;
+        }
+
+        .custom-select .search-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            cursor: text;
+        }
+
+        .custom-select .chevron {
+            position: absolute;
+            right: 14px; top: 50%;
+            transform: translateY(-50%);
+            width: 16px; height: 16px;
+            pointer-events: none;
+            stroke: var(--text-secondary);
+            fill: none; stroke-width: 2.2;
+            stroke-linecap: round; stroke-linejoin: round;
+            transition: stroke 0.25s, transform 0.25s;
+        }
+
+        .custom-select.active .chevron {
+            stroke: var(--accent);
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .custom-select .options-list {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: var(--bg-input);
+            border: 1px solid var(--border-focus);
+            border-radius: 10px;
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+
+        .custom-select.active .options-list {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .custom-select .options-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-select .options-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-select .options-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .custom-select .options-list::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        .custom-select .option {
+            padding: 11px 16px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            color: var(--text-primary);
+            transition: background 0.15s;
+        }
+
+        .custom-select .option:hover {
+            background: var(--accent-dim);
+        }
+
+        .custom-select .option.selected {
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .custom-select .option.hidden {
+            display: none;
+        }
+
+        .custom-select .no-results {
+            padding: 16px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Hidden select for form submission */
+        .custom-select select {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Swap row: sits between From and To */
+        .swap-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 4px 0 4px;
+            opacity: 0;
+            animation: fieldIn 0.5s 0.3s cubic-bezier(0.16,1,0.3,1) both;
+            position: relative;
+            z-index: 1;
+        }
+        .swap-row .line {
+            flex: 1; height: 1px;
+            background: var(--border);
+        }
+        .swap-row .swap-btn {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s, transform 0.2s;
+            margin: 0 10px;
+        }
+        .swap-row .swap-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            transform: rotate(180deg);
+        }
+        .swap-row .swap-btn svg {
+            width: 16px; height: 16px;
+            stroke: var(--text-secondary); fill: none;
+            stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+            transition: stroke 0.2s;
+        }
+        .swap-row .swap-btn:hover svg {
+            stroke: var(--accent);
+        }
+
+        /* Submit button */
+        .btn-wrap {
+            margin-top: 32px;
+            opacity: 0;
+            animation: fieldIn 0.5s 0.45s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        button[type="submit"] {
+            width: 100%;
+            background: linear-gradient(135deg, #b8955a, #c9a96e, #d4b87a);
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #1a1610;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        button[type="submit"]:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        button[type="submit"]:active {
+            transform: translateY(0);
+        }
+        /* Shimmer on button */
+        button[type="submit"]::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 60%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+            animation: shimmer 2.8s infinite;
+        }
+        @keyframes shimmer {
+            to { left: 160%; }
+        }
+
+        /* Validation tooltip */
+        .field input:invalid:focus + .err {
+            opacity: 1; transform: translateY(0);
+        }
+        .err {
+            font-size: 0.68rem;
+            color: var(--red);
+            margin-top: 5px;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="icon-wrap">
+            <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M8 12h8M13 8l4 4-4 4"/>
+            </svg>
+        </div>
+        <h1>Currency Converter</h1>
+        <p>Enter an amount and select currencies</p>
+    </div>
+
+    <!-- Form — action & field names unchanged -->
+    <form action="/convert">
+
+        <div class="field">
+            <label for="amount">Amount</label>
+            <input type="number" id="amount" name="amount" placeholder="e.g. 1000" required>
+            <div class="err">Please enter a valid amount.</div>
+        </div>
+
+        <div class="field">
+            <label for="from">From Currency</label>
+            <div class="custom-select" id="fromSelect">
+                <input type="text" class="search-input" placeholder="Search or select currency" autocomplete="off">
+                <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                <div class="options-list"></div>
+                <select id="from" name="from" required>
+                    <option value="">Select currency</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Decorative swap icon -->
+        <div class="swap-row">
+            <div class="line"></div>
+            <div class="swap-btn" tabindex="-1" onclick="swapCurrencies()" title="Swap currencies">
+                <svg viewBox="0 0 24 24"><path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
+            </div>
+            <div class="line"></div>
+        </div>
+
+        <div class="field">
+            <label for="to">To Currency</label>
+            <div class="custom-select" id="toSelect">
+                <input type="text" class="search-input" placeholder="Search or select currency" autocomplete="off">
+                <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                <div class="options-list"></div>
+                <select id="to" name="to" required>
+                    <option value="">Select currency</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="btn-wrap">
+            <button type="submit">Convert</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Currency data
+    const currencies = [
+        { code: "AED", name: "UAE Dirham" },
+        { code: "AFN", name: "Afghan Afghani" },
+        { code: "ALL", name: "Albanian Lek" },
+        { code: "AMD", name: "Armenian Dram" },
+        { code: "ANG", name: "Netherlands Antillean Guilder" },
+        { code: "AOA", name: "Angolan Kwanza" },
+        { code: "ARS", name: "Argentine Peso" },
+        { code: "AUD", name: "Australian Dollar" },
+        { code: "AWG", name: "Aruban Florin" },
+        { code: "AZN", name: "Azerbaijani Manat" },
+        { code: "BAM", name: "Bosnia and Herzegovina Mark" },
+        { code: "BBD", name: "Barbadian Dollar" },
+        { code: "BDT", name: "Bangladeshi Taka" },
+        { code: "BGN", name: "Bulgarian Lev" },
+        { code: "BHD", name: "Bahraini Dinar" },
+        { code: "BIF", name: "Burundian Franc" },
+        { code: "BMD", name: "Bermudian Dollar" },
+        { code: "BND", name: "Brunei Dollar" },
+        { code: "BOB", name: "Bolivian Boliviano" },
+        { code: "BRL", name: "Brazilian Real" },
+        { code: "BSD", name: "Bahamian Dollar" },
+        { code: "BTN", name: "Bhutanese Ngultrum" },
+        { code: "BWP", name: "Botswanan Pula" },
+        { code: "BYN", name: "Belarusian Ruble" },
+        { code: "BZD", name: "Belizean Dollar" },
+        { code: "CAD", name: "Canadian Dollar" },
+        { code: "CDF", name: "Congolese Franc" },
+        { code: "CHF", name: "Swiss Franc" },
+        { code: "CLP", name: "Chilean Peso" },
+        { code: "CNY", name: "Chinese Yuan" },
+        { code: "COP", name: "Colombian Peso" },
+        { code: "CRC", name: "Costa Rican Colón" },
+        { code: "CUP", name: "Cuban Peso" },
+        { code: "CVE", name: "Cape Verdean Escudo" },
+        { code: "CZK", name: "Czech Koruna" },
+        { code: "DJF", name: "Djiboutian Franc" },
+        { code: "DKK", name: "Danish Krone" },
+        { code: "DOP", name: "Dominican Peso" },
+        { code: "DZD", name: "Algerian Dinar" },
+        { code: "EGP", name: "Egyptian Pound" },
+        { code: "ERN", name: "Eritrean Nakfa" },
+        { code: "ETB", name: "Ethiopian Birr" },
+        { code: "EUR", name: "Euro" },
+        { code: "FJD", name: "Fijian Dollar" },
+        { code: "FKP", name: "Falkland Islands Pound" },
+        { code: "GBP", name: "British Pound" },
+        { code: "GEL", name: "Georgian Lari" },
+        { code: "GHS", name: "Ghanaian Cedi" },
+        { code: "GIP", name: "Gibraltar Pound" },
+        { code: "GMD", name: "Gambian Dalasi" },
+        { code: "GNF", name: "Guinean Franc" },
+        { code: "GTQ", name: "Guatemalan Quetzal" },
+        { code: "GYD", name: "Guyanaese Dollar" },
+        { code: "HKD", name: "Hong Kong Dollar" },
+        { code: "HNL", name: "Honduran Lempira" },
+        { code: "HRK", name: "Croatian Kuna" },
+        { code: "HTG", name: "Haitian Gourde" },
+        { code: "HUF", name: "Hungarian Forint" },
+        { code: "IDR", name: "Indonesian Rupiah" },
+        { code: "ILS", name: "Israeli Shekel" },
+        { code: "INR", name: "Indian Rupee" },
+        { code: "IQD", name: "Iraqi Dinar" },
+        { code: "IRR", name: "Iranian Rial" },
+        { code: "ISK", name: "Icelandic Króna" },
+        { code: "JMD", name: "Jamaican Dollar" },
+        { code: "JOD", name: "Jordanian Dinar" },
+        { code: "JPY", name: "Japanese Yen" },
+        { code: "KES", name: "Kenyan Shilling" },
+        { code: "KGS", name: "Kyrgyzstani Som" },
+        { code: "KHR", name: "Cambodian Riel" },
+        { code: "KMF", name: "Comorian Franc" },
+        { code: "KPW", name: "North Korean Won" },
+        { code: "KRW", name: "South Korean Won" },
+        { code: "KWD", name: "Kuwati Dinar" },
+        { code: "KYD", name: "Cayman Islands Dollar" },
+        { code: "KZT", name: "Kazakhstani Tenge" },
+        { code: "LAK", name: "Lao Kip" },
+        { code: "LBP", name: "Lebanese Pound" },
+        { code: "LKR", name: "Sri Lankan Rupee" },
+        { code: "LRD", name: "Liberian Dollar" },
+        { code: "LSL", name: "Lesotho Loti" },
+        { code: "LYD", name: "Libyan Dinar" },
+        { code: "MAD", name: "Moroccan Dirham" },
+        { code: "MDL", name: "Moldovan Leu" },
+        { code: "MGA", name: "Malagasy Ariary" },
+        { code: "MKD", name: "Macedonian Denar" },
+        { code: "MMK", name: "Burmese Kyat" },
+        { code: "MNT", name: "Mongolian Tugrik" },
+        { code: "MOP", name: "Macanese Pataca" },
+        { code: "MRU", name: "Mauritanian Ouguiya" },
+        { code: "MUR", name: "Mauritian Rupee" },
+        { code: "MVR", name: "Maldivian Rufiyaa" },
+        { code: "MWK", name: "Malawian Kwacha" },
+        { code: "MXN", name: "Mexican Peso" },
+        { code: "MYR", name: "Malaysian Ringgit" },
+        { code: "MZN", name: "Mozambican Metical" },
+        { code: "NAD", name: "Namibian Dollar" },
+        { code: "NGN", name: "Nigerian Naira" },
+        { code: "NIO", name: "Nicaraguan Córdoba" },
+        { code: "NOK", name: "Norwegian Krone" },
+        { code: "NPR", name: "Nepalese Rupee" },
+        { code: "NZD", name: "New Zealand Dollar" },
+        { code: "OMR", name: "Omani Rial" },
+        { code: "PAB", name: "Panamanian Balboa" },
+        { code: "PEN", name: "Peruvian Sol" },
+        { code: "PGK", name: "Papua New Guinean Kina" },
+        { code: "PHP", name: "Philippine Peso" },
+        { code: "PKR", name: "Pakistani Rupee" },
+        { code: "PLN", name: "Polish Zloty" },
+        { code: "PYG", name: "Paraguayan Guarani" },
+        { code: "QAR", name: "Qatari Rial" },
+        { code: "RON", name: "Romanian Leu" },
+        { code: "RSD", name: "Serbian Dinar" },
+        { code: "RUB", name: "Russian Ruble" },
+        { code: "RWF", name: "Rwandan Franc" },
+        { code: "SAR", name: "Saudi Riyal" },
+        { code: "SBD", name: "Solomon Islands Dollar" },
+        { code: "SCR", name: "Seychellois Rupee" },
+        { code: "SDG", name: "Sudanese Pound" },
+        { code: "SEK", name: "Swedish Krona" },
+        { code: "SGD", name: "Singapore Dollar" },
+        { code: "SHP", name: "Saint Helena Pound" },
+        { code: "SLL", name: "Sierra Leonean Leone" },
+        { code: "SOS", name: "Somali Shilling" },
+        { code: "SRD", name: "Surinamese Dollar" },
+        { code: "SSP", name: "South Sudanese Pound" },
+        { code: "STN", name: "São Tomé and Príncipe Dobra" },
+        { code: "SVC", name: "Salvadoran Colón" },
+        { code: "SYP", name: "Syrian Pound" },
+        { code: "SZL", name: "Eswatini Lilangeni" },
+        { code: "THB", name: "Thai Baht" },
+        { code: "TJS", name: "Tajikistani Somoni" },
+        { code: "TMT", name: "Turkmenistani Manat" },
+        { code: "TND", name: "Tunisian Dinar" },
+        { code: "TOP", name: "Tongan Paʻanga" },
+        { code: "TRY", name: "Turkish Lira" },
+        { code: "TTD", name: "Trinidad and Tobago Dollar" },
+        { code: "TWD", name: "New Taiwan Dollar" },
+        { code: "TZS", name: "Tanzanian Shilling" },
+        { code: "UAH", name: "Ukrainian Hryvnia" },
+        { code: "UGX", name: "Ugandan Shilling" },
+        { code: "USD", name: "US Dollar" },
+        { code: "UYU", name: "Uruguayan Peso" },
+        { code: "UZS", name: "Uzbekistani Som" },
+        { code: "VES", name: "Venezuelan Bolívar" },
+        { code: "VND", name: "Vietnamese Dong" },
+        { code: "VUV", name: "Vanuatu Vatu" },
+        { code: "WST", name: "Samoan Tala" },
+        { code: "XAF", name: "Central African CFA Franc" },
+        { code: "XCD", name: "East Caribbean Dollar" },
+        { code: "XOF", name: "West African CFA Franc" },
+        { code: "XPF", name: "CFP Franc" },
+        { code: "YER", name: "Yemeni Rial" },
+        { code: "ZAR", name: "South African Rand" },
+        { code: "ZMW", name: "Zambian Kwacha" },
+        { code: "ZWL", name: "Zimbabwean Dollar" }
+    ];
+
+    // Initialize custom selects
+    function initCustomSelect(selectId) {
+        const container = document.getElementById(selectId);
+        const input = container.querySelector('.search-input');
+        const optionsList = container.querySelector('.options-list');
+        const hiddenSelect = container.querySelector('select');
+
+        // Populate hidden select and options list
+        currencies.forEach(currency => {
+            // Add to hidden select
+            const option = document.createElement('option');
+            option.value = currency.code;
+            option.textContent = `${currency.code} – ${currency.name}`;
+            hiddenSelect.appendChild(option);
+
+            // Add to visible options list
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'option';
+            optionDiv.textContent = `${currency.code} – ${currency.name}`;
+            optionDiv.dataset.value = currency.code;
+            optionDiv.dataset.text = `${currency.code} – ${currency.name}`;
+            optionDiv.addEventListener('click', () => selectOption(container, currency.code, `${currency.code} – ${currency.name}`));
+            optionsList.appendChild(optionDiv);
+        });
+
+        // Click on input to toggle dropdown
+        input.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown(container);
+        });
+
+        // Type to search
+        input.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            filterOptions(container, searchTerm);
+            if (!container.classList.contains('active')) {
+                container.classList.add('active');
+            }
+        });
+
+        // Prevent form submission on Enter in search
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const visibleOptions = Array.from(optionsList.querySelectorAll('.option:not(.hidden)'));
+                if (visibleOptions.length === 1) {
+                    visibleOptions[0].click();
+                } else if (visibleOptions.length > 0) {
+                    visibleOptions[0].click();
+                }
+            }
+        });
+    }
+
+    function toggleDropdown(container) {
+        const wasActive = container.classList.contains('active');
+
+        // Close all dropdowns
+        document.querySelectorAll('.custom-select').forEach(select => {
+            select.classList.remove('active');
+        });
+
+        // Open this one if it wasn't active
+        if (!wasActive) {
+            container.classList.add('active');
+            const input = container.querySelector('.search-input');
+            input.focus();
+        }
+    }
+
+    function selectOption(container, value, text) {
+        const input = container.querySelector('.search-input');
+        const hiddenSelect = container.querySelector('select');
+        const options = container.querySelectorAll('.option');
+
+        // Update input and select
+        input.value = text;
+        hiddenSelect.value = value;
+
+        // Update selected state
+        options.forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.value === value);
+        });
+
+        // Close dropdown
+        container.classList.remove('active');
+
+        // Clear search
+        filterOptions(container, '');
+    }
+
+    function filterOptions(container, searchTerm) {
+        const optionsList = container.querySelector('.options-list');
+        const options = optionsList.querySelectorAll('.option');
+        let hasVisibleOptions = false;
+
+        options.forEach(option => {
+            const text = option.dataset.text.toLowerCase();
+            const matches = text.includes(searchTerm);
+            option.classList.toggle('hidden', !matches);
+            if (matches) hasVisibleOptions = true;
+        });
+
+        // Show/hide no results message
+        let noResults = optionsList.querySelector('.no-results');
+        if (!hasVisibleOptions && searchTerm) {
+            if (!noResults) {
+                noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.textContent = 'No currencies found';
+                optionsList.appendChild(noResults);
+            }
+        } else if (noResults) {
+            noResults.remove();
+        }
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.custom-select')) {
+            document.querySelectorAll('.custom-select').forEach(select => {
+                select.classList.remove('active');
+            });
+        }
+    });
+
+    // Initialize both selects
+    initCustomSelect('fromSelect');
+    initCustomSelect('toSelect');
+
+    // Swap helper
+    function swapCurrencies() {
+        const fromContainer = document.getElementById('fromSelect');
+        const toContainer = document.getElementById('toSelect');
+
+        const fromSelect = fromContainer.querySelector('select');
+        const toSelect = toContainer.querySelector('select');
+
+        const fromInput = fromContainer.querySelector('.search-input');
+        const toInput = toContainer.querySelector('.search-input');
+
+        // Swap values
+        const tempValue = fromSelect.value;
+        const tempText = fromInput.value;
+
+        fromSelect.value = toSelect.value;
+        fromInput.value = toInput.value;
+
+        toSelect.value = tempValue;
+        toInput.value = tempText;
+
+        // Update selected states
+        fromContainer.querySelectorAll('.option').forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.value === fromSelect.value);
+        });
+        toContainer.querySelectorAll('.option').forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.value === toSelect.value);
+        });
+    }
+</script>
+</body>
+</html>
